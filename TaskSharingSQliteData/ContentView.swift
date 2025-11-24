@@ -10,8 +10,9 @@ struct ContentView: View {
     @FetchAll var userGroups: [UserGroup]
     @FetchAll(TaskModel.order(by: \.startDate)) var tasks
 
-    @State private var showingAddGroup = false
-    @State private var showingAddTask = false
+    @State private var groupDraft: UserGroup.Draft?
+    @State private var taskDraft: TaskModel.Draft?
+
     @State private var selectedGroup: UserGroup?
     @State private var sharedRecord: SharedRecord?
       
@@ -39,21 +40,29 @@ struct ContentView: View {
             .toolbar {
                 ToolbarItem(placement: .primaryAction) {
                     Menu {
-                        Button("Add Group") { showingAddGroup = true }
-                        Button("Add Task") { showingAddTask = true }
+                        Button(action: {
+                            groupDraft = UserGroup.Draft()
+                        }) {
+                            Label("Add Group", systemImage: "person.3.fill")
+                        }
+                        Button(action: {
+                            taskDraft = TaskModel.Draft()
+                        }) {
+                            Label("Add Task", systemImage: "largecircle.fill.circle")
+                        }
                     } label: {
                         Image(systemName: "plus")
                     }
                 }
             }
-            .sheet(isPresented: $showingAddGroup) {
-                AddGroupView()
-            }
-            .sheet(isPresented: $showingAddTask) {
-                TaskEditorView(task: TaskModel.Draft())
-            }
             .sheet(item: $sharedRecord) { sharedRecord in
                 CloudSharingView(sharedRecord: sharedRecord)
+            }
+            .sheet(item: $groupDraft) { groupDraft in
+                GroupEditorView(userGroup: groupDraft)
+            }
+            .sheet(item: $taskDraft) { taskDraft in
+                TaskEditorView(task: taskDraft)
             }
         }
     }

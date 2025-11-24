@@ -11,6 +11,8 @@ struct TaskEditorView: View {
     
     @State private var task: TaskModel.Draft
     
+    @FocusState private var titleFocused: Bool
+
     init(task: TaskModel.Draft) {
         self._task = State(initialValue: task)
     }
@@ -19,6 +21,7 @@ struct TaskEditorView: View {
         NavigationStack {
             Form {
                 TextField("Title", text: $task.title)
+                    .focused($titleFocused)
                 TextField("Content", text: $task.content, axis: .vertical)
                     .lineLimit(3 ... 6)
                   
@@ -38,7 +41,8 @@ struct TaskEditorView: View {
                     }
                 }
             }
-            .navigationTitle("New Task")
+            .navigationTitle("Task")
+            .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
                     Button("Cancel") { dismiss() }
@@ -51,6 +55,9 @@ struct TaskEditorView: View {
                     }
                     .disabled(task.title.isEmpty)
                 }
+            }
+            .onAppear {
+                titleFocused = true
             }
         }
     }

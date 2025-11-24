@@ -54,8 +54,10 @@ struct TaskRow: View {
                     .foregroundStyle(.tertiary)
             }
             .contextMenu {
-                Button("Edit") {
+                Button(action: {
                     taskToEdit = TaskModel.Draft(task)
+                }) {
+                    Label("Edit", systemImage: "pencil")
                 }
             }
         }

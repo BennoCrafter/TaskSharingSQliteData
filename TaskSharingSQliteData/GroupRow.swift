@@ -6,7 +6,9 @@ import SwiftUI
 struct GroupRow: View {
     let group: UserGroup
     let onShare: () -> Void
-      
+    
+    @State private var groupToEdit: UserGroup.Draft?
+
     var body: some View {
         HStack {
             Circle()
@@ -28,6 +30,16 @@ struct GroupRow: View {
             Button(action: onShare) {
                 Image(systemName: "square.and.arrow.up")
             }
+        }
+        .contextMenu {
+            Button(action: {
+                groupToEdit = UserGroup.Draft(group)
+            }) {
+                Label("Edit", systemImage: "pencil")
+            }
+        }
+        .sheet(item: $groupToEdit) { groupToEdit in
+            GroupEditorView(userGroup: groupToEdit)
         }
     }
 }

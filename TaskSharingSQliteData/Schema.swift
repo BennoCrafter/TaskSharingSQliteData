@@ -60,15 +60,6 @@ func appDatabase() throws -> any DatabaseWriter {
 
     configuration.prepareDatabase { db in
         try db.attachMetadatabase()
-        #if DEBUG
-            db.trace(options: .profile) {
-                if context == .live {
-                    logger.debug("\($0.expandedDescription)")
-                } else {
-                    print("\($0.expandedDescription)")
-                }
-            }
-        #endif
     }
     let database = try SQLiteData.defaultDatabase(configuration: configuration)
     logger.debug(

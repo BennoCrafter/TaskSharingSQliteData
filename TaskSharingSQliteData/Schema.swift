@@ -24,8 +24,6 @@ public struct PrivateTaskModel: Codable, Sendable {
     @Column(primaryKey: true)
     public let taskId: TaskModel.ID
     public var completionDate: Date? = nil
-
-    public var eventId: UUID?
 }
 
 extension PrivateTaskModel.Draft {}
@@ -110,8 +108,7 @@ func appDatabase() throws -> any DatabaseWriter {
             """
             CREATE TABLE "privateTasks" (
               "taskId" TEXT PRIMARY KEY REFERENCES "tasks"("id") ON DELETE CASCADE,
-              "completionDate" TEXT,
-              "eventId" TEXT
+              "completionDate" TEXT
             ) STRICT
             """
         ).execute(db)

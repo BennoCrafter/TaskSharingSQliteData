@@ -3,29 +3,29 @@ import Dependencies
 import SQLiteData
 import SwiftUI
 
-struct AddTaskView: View {
+struct TaskEditorView: View {
     @Environment(\.dismiss) var dismiss
     @Dependency(\.defaultDatabase) var database
       
-    let groups: [UserGroup]
-      
-    @State private var title = ""
-    @State private var content = ""
-    @State private var startDate = Date()
-    @State private var endDate = Date().addingTimeInterval(3600)
-    @State private var selectedGroupId: UUID?
-      
+    @FetchAll var groups: [UserGroup]
+    
+    @State private var task: TaskModel.Draft
+    
+    init(task: TaskModel.Draft) {
+        self._task = State(initialValue: task)
+    }
+
     var body: some View {
         NavigationStack {
             Form {
-                TextField("Title", text: $title)
-                TextField("Content", text: $content, axis: .vertical)
+                TextField("Title", text: $task.title)
+                TextField("Content", text: $task.content, axis: .vertical)
                     .lineLimit(3 ... 6)
                   
-                DatePicker("Start", selection: $startDate)
-                DatePicker("End", selection: $endDate)
+                DatePicker("Start", selection: $task.startDate)
+                DatePicker("End", selection: $task.endDate)
                   
-                Picker("Group", selection: $selectedGroupId) {
+                Picker("Group", selection: $task.userGroupId) {
                     Text("None").tag(nil as UUID?)
                     ForEach(groups) { group in
                         HStack {
@@ -44,30 +44,21 @@ struct AddTaskView: View {
                     Button("Cancel") { dismiss() }
                 }
                 ToolbarItem(placement: .confirmationAction) {
-                    Button("Add") {
+                    Button("Save") {
                         Task {
-                            await addTask()
+                            await saveTask()
                         }
                     }
-                    .disabled(title.isEmpty)
+                    .disabled(task.title.isEmpty)
                 }
             }
         }
     }
       
-    private func addTask() async {
+    private func saveTask() async {
         do {
             try await database.write { db in
-                try TaskModel.upsert {
-                    TaskModel.Draft(
-                        title: title,
-                        startDate: startDate,
-                        endDate: endDate,
-                        content: content,
-                        userGroupId: selectedGroupId
-                    )
-                }
-                .execute(db)
+                try TaskModel.upsert { task }.execute(db)
             }
             dismiss()
         } catch {

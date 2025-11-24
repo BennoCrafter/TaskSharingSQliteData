@@ -50,7 +50,7 @@ struct ContentView: View {
                 AddGroupView()
             }
             .sheet(isPresented: $showingAddTask) {
-                AddTaskView(groups: userGroups)
+                TaskEditorView(task: TaskModel.Draft())
             }
             .sheet(item: $sharedRecord) { sharedRecord in
                 CloudSharingView(sharedRecord: sharedRecord)

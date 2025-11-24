@@ -18,6 +18,8 @@ struct TaskRow: View {
     var isCompleted: Bool {
         privateTask?.completionDate != nil
     }
+    
+    @State private var taskToEdit: TaskModel.Draft?
       
     var body: some View {
         HStack {
@@ -51,9 +53,17 @@ struct TaskRow: View {
                     .font(.caption2)
                     .foregroundStyle(.tertiary)
             }
+            .contextMenu {
+                Button("Edit") {
+                    taskToEdit = TaskModel.Draft(task)
+                }
+            }
         }
         .task {
             await loadPrivateTask()
+        }
+        .sheet(item: $taskToEdit) { taskToEdit in
+            TaskEditorView(task: taskToEdit)
         }
     }
       

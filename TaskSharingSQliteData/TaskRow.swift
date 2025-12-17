@@ -37,6 +37,8 @@ struct TaskRow: View {
                 Text(task.title)
                     .font(.headline)
                     .strikethrough(isCompleted)
+                
+                Text(privateTask == nil ? "no private task entry" : "private task entry exists")
                   
                 if let group = taskGroup {
                     HStack {

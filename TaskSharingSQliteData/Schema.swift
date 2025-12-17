@@ -1,4 +1,5 @@
 import Dependencies
+import CloudKit
 import Foundation
 import IssueReporting
 import OSLog
@@ -38,6 +39,13 @@ public struct TaskModel: Identifiable, Codable, Sendable {
     public var userGroupId: UserGroup.ID?
 }
 
+public nonisolated extension TaskModel.TableColumns {
+    nonisolated var idCompare: some QueryExpression<String> {
+        #sql("lower(cast(\(self.id) as text))")
+    }
+}
+
+
 extension TaskModel.Draft: Identifiable {}
 
 extension DependencyValues {
@@ -58,6 +66,7 @@ func appDatabase() throws -> any DatabaseWriter {
 
     configuration.prepareDatabase { db in
         try db.attachMetadatabase()
+        db.add(function: $didInsertMetadata)
     }
     let database = try SQLiteData.defaultDatabase(configuration: configuration)
     logger.debug(
@@ -117,18 +126,49 @@ func appDatabase() throws -> any DatabaseWriter {
     try migrator.migrate(database)
 
     try database.write { db in
-        try TaskModel.createTemporaryTrigger(
+        try SyncMetadata.createTemporaryTrigger(
             after: .insert { new in
-                #sql("""
-                INSERT INTO "privateTasks" ("taskId")
-                VALUES (\(new.primaryKey))
-                ON CONFLICT DO NOTHING
-                """)
+                Values($didInsertMetadata(new.recordType, new.recordName, new.recordPrimaryKey, new.lastKnownServerRecord, new.parentRecordType))
             }
-        ).execute(db)
+        )
+        .execute(db)
     }
 
     return database
+}
+
+@DatabaseFunction(
+    as: ((String, String, String, CKRecord.SystemFieldsRepresentation?, String?) -> Void).self
+)
+func didInsertMetadata(_ recordType: String, _ recordName: String, _ recordPrimaryKey: String, _ lastKnownServerRecord: CKRecord?, _ parentRecordType: String?) {
+    @Dependency(\.defaultDatabase) var database
+    guard recordType == "tasks" else { return }
+    guard parentRecordType == "userGroups" else { return }
+    print("New shared task got synced")
+    
+    Task {
+        await withErrorReporting {
+            let ta = try await database.read { db in
+                try TaskModel
+                    .where { $0.idCompare == recordPrimaryKey }
+                    .fetchOne(db)
+            }
+            
+            print(ta) // will be nil
+            
+            let tasks = try await database.read { db in
+                try TaskModel.fetchAll(db)
+            }
+            print(tasks) // will not contain newly synced task
+            
+            if let ta = ta {
+                try await database.write { db in
+                    try PrivateTaskModel.upsert { PrivateTaskModel.Draft(taskId: ta.id) }
+                        .execute(db)
+                }
+            }
+        }
+    }
 }
 
 private nonisolated let logger = Logger(subsystem: "TaskSharingSample", category: "Database")
